@@ -1,7 +1,7 @@
 const stripe = require('stripe')(
   'sk_test_51Lm88LGvhFY600fnBDaOI80CZ86HHSpj6wtrENAv1sNbuM8oYJy0trLaJUZavk5yNyFThSwfnStnzgzDSIBkFw0Y00Xz0BMWTq'
 );
-const fastify = require('fastify')({ logger: true });
+const fastify = require('fastify')({ logger: false });
 
 fastify.post('/create-payment-intent', async () => {
   const paymentIntent = await stripe.paymentIntents.create({
@@ -43,10 +43,10 @@ fastify.post('/payment-sheet', async (request, reply) => {
 });
 
 fastify.get('/payment-methods', async () => {
-  const paymentMethods = await stripe.paymentMethods.list({
-    customer: 'cus_MWKDh89XB0wYUV',
-    type: 'card',
-  });
+  const paymentMethods = await stripe.customers.listPaymentMethods(
+    'cus_MWKDh89XB0wYUV',
+    { type: 'card' }
+  );
 
   return {
     count: paymentMethods.data.length,
@@ -56,14 +56,14 @@ fastify.get('/payment-methods', async () => {
 
 fastify.post('/create-payment-method', async (req, res) => {
   try {
-    const { card_number, exp_month, exp_year, cvc } = req.body;
+    const { card_number, exp_month, exp_year, cvv } = req.body;
     const paymentMethod = await stripe.paymentMethods.create({
       type: 'card',
       card: {
         number: card_number,
         exp_month: +exp_month,
         exp_year: +exp_year,
-        cvc: cvc,
+        cvc: cvv,
       },
     });
 
@@ -77,7 +77,6 @@ fastify.post('/create-payment-method', async (req, res) => {
       paymentMethod,
     };
   } catch (error) {
-    console.log(error);
     res.code(400).send(error);
   }
 });
